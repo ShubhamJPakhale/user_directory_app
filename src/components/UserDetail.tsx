@@ -6,6 +6,7 @@ import {
   generateMockInsights,
 } from "../service/openaicode";
 
+import { generateGroqInsights } from "../service/groqapi";
 interface Props {
   user: UserSchema | null;
 }
@@ -41,8 +42,11 @@ const UserDetails = ({ user }: Props) => {
     setError("");
 
     try {
-      //const result = await generateUserInsightsClaude(user);
-      const result = await generateMockInsights(user);
+      //const result = await generateUserInsightsClaude(user); // as it require cost i implemented but not working will get error
+      //const result = await generateMockInsights(user); // dummay value it will return
+      //const result = await generateUserInsights(user);
+
+      const result = await generateGroqInsights(user);
       setInsight(result);
       // Cache result
       localStorage.setItem(`insight_${user.id}`, result);
@@ -64,8 +68,11 @@ const UserDetails = ({ user }: Props) => {
     setError("");
 
     try {
-      //const result = await generateUserInsightsClaude(user);
-      const result = await generateMockInsights(user);
+      //const result = await generateUserInsightsClaude(user); // as it require cost i implemented but not working will get error
+      //const result = await generateMockInsights(user); // dummay value it will return
+      //const result = await generateUserInsights(user);
+
+      const result = await generateGroqInsights(user);
       setInsight(result);
       localStorage.setItem(`insight_${user.id}`, result);
     } catch (err) {

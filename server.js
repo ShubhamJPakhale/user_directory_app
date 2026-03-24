@@ -1,6 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 require("dotenv").config();
+const OpenAI = require("openai");
 
 const app = express();
 const PORT = 5000;
@@ -8,6 +9,11 @@ app.use(cors());
 app.use(express.json());
 
 const requestCache = new Map();
+
+const groqClient = new OpenAI({
+  apiKey: process.env.REACT_APP_GROQ_API_KEY,
+  baseURL: "https://api.groq.com/openai/v1",
+});
 
 const isRateLimited = (userId) => {
   const now = Date.now();
@@ -207,15 +213,48 @@ Language: ${user.language}`;
   }
 });
 
-// Health check
-app.get("/api/health", (req, res) => {
-  res.json({ status: "Server is running", port: PORT });
+// Groq API Route
+app.post("/api/generate-groq-insight", async (req, res) => {
+  try {
+    const { user } = req.body;
+
+    if (!user) {
+      return res.status(400).json({ error: "User data is required" });
+    }
+
+    if (isRateLimited(`groq_${user.id}`)) {
+      return res.status(429).json({
+        error: "Too many requests. Please wait before trying again.",
+      });
+    }
+
+    const prompt = `
+    Summarize the following user in 1–2 sentences:
+    Name: ${user.name}
+    Role: ${user.role}
+    Status: ${user.status}
+    Language: ${user.language}
+`;
+
+    const response = await groqClient.chat.completions.create({
+      model: "llama-3.3-70b-versatile",
+      messages: [
+        {
+          role: "user",
+          content: prompt,
+        },
+      ],
+    });
+
+    const insights = response.choices[0].message.content;
+    console.log("Groq insights generated:", insights);
+    res.json({ insight: insights || "" });
+  } catch (error) {
+    console.error("Error generating Groq insights:", error);
+    res.status(500).json({ error: error.message });
+  }
 });
 
 app.listen(PORT, () => {
   console.log(`Backend server running on http://localhost:${PORT}`);
-  console.log("Available routes:");
-  console.log("  POST /api/generate-openai-insight");
-  console.log("  POST /api/generate-anthropic-insight");
-  console.log("  GET  /api/health");
 });
